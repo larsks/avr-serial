@@ -1,3 +1,7 @@
+/**
+ * \file serial.c
+ * A simple software serial implementation
+ */
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/atomic.h>
@@ -6,12 +10,21 @@
 
 #include "serial.h"
 
-// Default to 4800bps since we can do that comfortably @ 1Mhz
 #ifndef SERIAL_BPS
+//! Serial bitrate. Defaults to 4800, but the code will support up to
+//! 9600bps with the clock at 1Mhz, and up to 57.6Kbps with the clock
+//! at 8Mhz.
 #define SERIAL_BPS 4800
 #endif
 
-// Select an appropriate prescaler for the selected bitrate
+//! Select an appropriate prescaler for the selected bitrate.
+//!
+//! `TIMER0` is an 8 bit timer, so we need to select a prescaler that will
+//! let us achieve the correct bit timing in less than 255 compare matches.
+//! We do this with a series of nested `#if` directives.
+//!
+//! \defgroup PRESCALER PRESCALER
+//! @{
 #if ((F_CPU/SERIAL_BPS) < 256)
 #pragma message "prescaler: no prescaler"
 #define PRESCALER_FLAG 0b001
@@ -33,25 +46,33 @@
 #endif
 #endif
 #endif
+//! @}
+
+#ifndef SERIAL_TXPIN
+//! Use this pin for serial output.
+#define SERIAL_TXPIN PORTB0
+#endif
 
 #ifndef SERIAL_TXPORT
+//! The port data register associated with `SERIAL_TXPIN`.
 #define SERIAL_TXPORT PORTB
 #endif
 
 #ifndef SERIAL_TXDDR
+//! The direction register (`DDRA`, `DDRB`, etc) associated with
+//! `SERIAL_TXPORT`
 #define SERIAL_TXDDR DDRB
 #endif
 
-#ifndef SERIAL_TXPIN
-#define SERIAL_TXPIN PORTB0
-#endif
-
+//! The number of timer tickets that correspond to a single bit. We
+//! load this value into the `OCR0A` register.
 #define TICKS_PER_BIT (F_CPU/SERIAL_BPS/PRESCALER_VAL)
 
+//! Data structure representing the output port.
 volatile struct SERIAL_PORT {
-    uint8_t data;
-    uint8_t index;
-    uint8_t busy;
+    uint8_t data;   //!< Byte we are currently sending
+    uint8_t index;  //!< Bit in `data` that we are currently sending
+    uint8_t busy;   //!< 1 if we are currently sending data, 0 otherwise
 } port;
 
 #ifdef DEBUG
@@ -72,11 +93,11 @@ int main() {
 }
 
 void serial_init() {
-    SERIAL_TXDDR |= 1<<SERIAL_TXPIN;       // Set SERIAL_TXPIN as an output
-    SERIAL_TXPORT |= 1<<SERIAL_TXPIN;     // Set SERIAL_TXPIN high (serial idle)
-    TCCR0A = 1<<WGM01;      // Select CTC mode
-    TCCR0B = PRESCALER_FLAG;    // Set clock scaler
-    OCR0A = TICKS_PER_BIT;  // Set CTC target value
+    SERIAL_TXDDR |= 1<<SERIAL_TXPIN;   // Set SERIAL_TXPIN as an output
+    SERIAL_TXPORT |= 1<<SERIAL_TXPIN;  // Set SERIAL_TXPIN high (serial idle)
+    TCCR0A = 1<<WGM01;                 // Select CTC mode
+    TCCR0B = PRESCALER_FLAG;           // Set clock prescaler
+    OCR0A = TICKS_PER_BIT;             // Set CTC target value
     sei();
 }
 
@@ -90,7 +111,8 @@ void serial_disable() {
 }
 
 void serial_putchar(char c) {
-    while (port.busy);
+    while (port.busy);      // Wait for previous byte to complete
+
     port.data = c;
     port.index = 0;
     port.busy = 1;
