@@ -5,7 +5,6 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/atomic.h>
-#include <util/delay.h>
 #include <string.h>
 
 #include "serial.h"
@@ -17,7 +16,7 @@
 #define SERIAL_BPS 4800
 #endif
 
-//! Select an appropriate prescaler for the selected bitrate.
+//! Select an appropriate prescaler for the specified bitrate.
 //!
 //! `TIMER0` is an 8 bit timer, so we need to select a prescaler that will
 //! let us achieve the correct bit timing in less than 255 compare matches.
@@ -81,16 +80,6 @@ const struct avr_mmcu_vcd_trace_t _mytrace[]  _MMCU_ = {
     { AVR_MCU_VCD_SYMBOL("TX"), .mask = (1<<SERIAL_TXPIN), .what = (void*)&SERIAL_TXPORT,  },
 };
 #endif
-
-int main() {
-    serial_init();
-    while (1) {
-        serial_enable();
-        serial_println("hello world");
-        serial_disable();
-        _delay_ms(500);
-    }
-}
 
 void serial_init() {
     SERIAL_TXDDR |= 1<<SERIAL_TXPIN;   // Set SERIAL_TXPIN as an output

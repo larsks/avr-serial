@@ -27,6 +27,7 @@ CPPFLAGS += -I/usr/local/include $(DEFINES)
 CFLAGS	+= -Wall $(OFLAG) -DSERIAL_BPS=$(SERIAL_BPS) -DF_CPU=$(CLOCK) -mmcu=$(DEVICE) --short-enums $(EXTRA_CFLAGS)
 
 OBJS += \
+	main.o \
 	serial.o
 
 DEPS = $(OBJS:.o=.dep)
