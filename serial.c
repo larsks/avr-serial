@@ -4,17 +4,39 @@
 #include <util/delay.h>
 #include <string.h>
 
-#define BPS 9600
-#define SCALE_FLAG 1  // This is the value that goes in the TCCR0B register
-#define SCALE_VAL 1   // This is the divisor selected by SCALE_FLAG
+// Default to 4800bps since we can do that @ 1Mhz
+#ifndef SERIAL_BPS
+#define SERIAL_BPS 4800
+#endif
+
+// Select an appropriate prescaler for the selected bitrate
+#if ((F_CPU/SERIAL_BPS) < 256)
+#pragma message "prescaler: no prescaler"
+#define SCALE_FLAG 1
+#define SCALE_VAL 1
+#else
+#if ((F_CPU/SERIAL_BPS/8) < 256)
+#pragma message "prescaler: CLK/8"
+#define SCALE_FLAG 2
+#define SCALE_VAL 8
+#else
+#if ((F_CPU/SERIAL_BPS/64) < 256)
+#pragma message "prescaler: CLK/64"
+#define SCALE_FLAG 3
+#define SCALE_VAL 64
+#else
+#pragma message "prescale: CLK/256"
+#define SCALE_FLAG 4
+#define SCALE_VAL 256
+#endif
+#endif
+#endif
 
 #define TXPORT PORTB
 #define TXDDR DDRB
 #define TXPIN PORTB0
 
-#define TICKS_PER_BIT (F_CPU/BPS/SCALE_VAL)
-#define mS_PER_BIT (1000000/BPS/1000)
-#define uS_PER_BIT ((1000000 / BPS) - (1000 * mS_PER_BIT))
+#define TICKS_PER_BIT (F_CPU/SERIAL_BPS/SCALE_VAL)
 
 typedef struct SERIAL_PORT {
     uint8_t data;
@@ -34,7 +56,7 @@ volatile SERIAL_PORT port;
 #ifdef DEBUG
 #include <simavr/avr/avr_mcu_section.h>
 const struct avr_mmcu_vcd_trace_t _mytrace[]  _MMCU_ = {
-    { AVR_MCU_VCD_SYMBOL("TX"),    .mask = (1<<PORTB0),    .what = (void*)&PORTB,  },
+    { AVR_MCU_VCD_SYMBOL("TX"), .mask = (1<<TXPIN), .what = (void*)&TXPORT,  },
 };
 #endif
 
