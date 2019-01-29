@@ -1,6 +1,7 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/atomic.h>
+#include <util/delay.h>
 #include <string.h>
 
 #define BPS 9600
@@ -21,45 +22,30 @@ typedef struct SERIAL_PORT {
     uint8_t busy;
 } SERIAL_PORT;
 
-void millis_init();
-uint32_t millis();
-
 void serial_init();
 void serial_putchar(char c);
 void serial_print(char *s);
 void serial_println(char *s);
-void delay(uint32_t m);
+void serial_enable();
+void serial_disable();
 
 volatile SERIAL_PORT port;
-volatile uint32_t _millis,
-         _micros = 1000;
+
+#ifdef DEBUG
+#include <simavr/avr/avr_mcu_section.h>
+const struct avr_mmcu_vcd_trace_t _mytrace[]  _MMCU_ = {
+    { AVR_MCU_VCD_SYMBOL("TX"),    .mask = (1<<PORTB0),    .what = (void*)&PORTB,  },
+};
+#endif
 
 int main() {
-    millis_init();
     serial_init();
     while (1) {
+        serial_enable();
         serial_println("hello world");
-        delay(500);
+        serial_disable();
+        _delay_ms(500);
     }
-}
-
-void delay(uint32_t m) {
-    uint32_t t_start = millis();
-    while (millis() - t_start < m);
-}
-
-void millis_init() {
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        _millis = 0;
-    }
-}
-
-uint32_t millis() {
-    uint32_t x;
-    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-      x = _millis;
-    }
-    return x;
 }
 
 void serial_init() {
@@ -68,8 +54,16 @@ void serial_init() {
     TCCR0A = 1<<WGM01;      // Select CTC mode
     TCCR0B = SCALE_FLAG;    // Set clock scaler
     OCR0A = TICKS_PER_BIT;  // Set CTC target value
-    TIMSK0 |= 1<<OCIE0A;    // Enable compare match interrupt
     sei();
+}
+
+void serial_enable() {
+    TIMSK0 |= 1<<OCIE0A;    // Enable compare match interrupt
+}
+
+void serial_disable() {
+    while (port.busy);      // Wait for send to complete
+    TIMSK0 &= ~(1<<OCIE0A); // Disable compare match interrupt
 }
 
 void serial_putchar(char c) {
@@ -112,14 +106,5 @@ ISR(TIM0_COMPA_vect) {
                 break;
         }
         port.index++;
-    }
-
-    _millis += mS_PER_BIT;
-
-    if (uS_PER_BIT > _micros) {
-        _millis++;
-        _micros = 1000;
-    } else {
-        _micros -= uS_PER_BIT;
     }
 }

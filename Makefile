@@ -4,7 +4,7 @@ AVR_BAUD    ?= 19200
 AVR_PORT    ?= /dev/ttyACM0
 FUSE_EXT    ?= 0xff
 FUSE_HIGH   ?= 0xdf
-FUSE_LOW    ?= 0xe2
+FUSE_LOW    ?= 0x62
 PROGRAMMER  ?= -c arduino 
 
 DEVICE      = attiny84
@@ -13,14 +13,16 @@ FUSES       = -U lfuse:w:$(FUSE_LOW):m -U hfuse:w:$(FUSE_HIGH):m -U efuse:w:$(FU
 PORT	    = -P $(AVR_PORT) -b $(AVR_BAUD)
 AVRDUDE     = avrdude -v $(PORT) $(PROGRAMMER) -p $(DEVICE) $(AVR_EXTRA_ARGS)
 
+OFLAG = -Os
+
 ifeq ($(DEBUG), 1)
 CFLAGS += -ggdb3 -DDEBUG
+OFLAG = -Og
 endif
 
-OFLAG = -Og
 CC	= avr-gcc
 CPPFLAGS += -I/usr/local/include $(DEFINES)
-CFLAGS	+= -Wall $(OFLAG) -DF_CPU=$(CLOCK) -mmcu=$(DEVICE) --short-enums
+CFLAGS	+= -Wall $(OFLAG) -DF_CPU=$(CLOCK) -mmcu=$(DEVICE) --short-enums $(EXTRA_CFLAGS)
 
 OBJS += \
 	serial.o
