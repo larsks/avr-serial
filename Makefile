@@ -20,9 +20,11 @@ CFLAGS += -ggdb3 -DDEBUG
 OFLAG = -Og
 endif
 
+SERIAL_BPS = 9600
+
 CC	= avr-gcc
 CPPFLAGS += -I/usr/local/include $(DEFINES)
-CFLAGS	+= -Wall $(OFLAG) -DF_CPU=$(CLOCK) -mmcu=$(DEVICE) --short-enums $(EXTRA_CFLAGS)
+CFLAGS	+= -Wall $(OFLAG) -DSERIAL_BPS=$(SERIAL_BPS) -DF_CPU=$(CLOCK) -mmcu=$(DEVICE) --short-enums $(EXTRA_CFLAGS)
 
 OBJS += \
 	serial.o
