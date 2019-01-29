@@ -4,7 +4,9 @@
 #include <util/delay.h>
 #include <string.h>
 
-// Default to 4800bps since we can do that @ 1Mhz
+#include "serial.h"
+
+// Default to 4800bps since we can do that comfortably @ 1Mhz
 #ifndef SERIAL_BPS
 #define SERIAL_BPS 4800
 #endif
@@ -12,51 +14,50 @@
 // Select an appropriate prescaler for the selected bitrate
 #if ((F_CPU/SERIAL_BPS) < 256)
 #pragma message "prescaler: no prescaler"
-#define SCALE_FLAG 1
-#define SCALE_VAL 1
+#define PRESCALER_FLAG 0b001
+#define PRESCALER_VAL 1
 #else
 #if ((F_CPU/SERIAL_BPS/8) < 256)
 #pragma message "prescaler: CLK/8"
-#define SCALE_FLAG 2
-#define SCALE_VAL 8
+#define PRESCALER_FLAG 0b010
+#define PRESCALER_VAL 8
 #else
 #if ((F_CPU/SERIAL_BPS/64) < 256)
 #pragma message "prescaler: CLK/64"
-#define SCALE_FLAG 3
-#define SCALE_VAL 64
+#define PRESCALER_FLAG 0b011
+#define PRESCALER_VAL 64
 #else
 #pragma message "prescale: CLK/256"
-#define SCALE_FLAG 4
-#define SCALE_VAL 256
+#define PRESCALER_FLAG 0b100
+#define PRESCALER_VAL 256
 #endif
 #endif
 #endif
 
-#define TXPORT PORTB
-#define TXDDR DDRB
-#define TXPIN PORTB0
+#ifndef SERIAL_TXPORT
+#define SERIAL_TXPORT PORTB
+#endif
 
-#define TICKS_PER_BIT (F_CPU/SERIAL_BPS/SCALE_VAL)
+#ifndef SERIAL_TXDDR
+#define SERIAL_TXDDR DDRB
+#endif
 
-typedef struct SERIAL_PORT {
+#ifndef SERIAL_TXPIN
+#define SERIAL_TXPIN PORTB0
+#endif
+
+#define TICKS_PER_BIT (F_CPU/SERIAL_BPS/PRESCALER_VAL)
+
+volatile struct SERIAL_PORT {
     uint8_t data;
     uint8_t index;
     uint8_t busy;
-} SERIAL_PORT;
-
-void serial_init();
-void serial_putchar(char c);
-void serial_print(char *s);
-void serial_println(char *s);
-void serial_enable();
-void serial_disable();
-
-volatile SERIAL_PORT port;
+} port;
 
 #ifdef DEBUG
 #include <simavr/avr/avr_mcu_section.h>
 const struct avr_mmcu_vcd_trace_t _mytrace[]  _MMCU_ = {
-    { AVR_MCU_VCD_SYMBOL("TX"), .mask = (1<<TXPIN), .what = (void*)&TXPORT,  },
+    { AVR_MCU_VCD_SYMBOL("TX"), .mask = (1<<SERIAL_TXPIN), .what = (void*)&SERIAL_TXPORT,  },
 };
 #endif
 
@@ -71,10 +72,10 @@ int main() {
 }
 
 void serial_init() {
-    DDRB |= 1<<TXPIN;       // Set TXPIN as an output
-    TXPORT |= 1<<TXPIN;     // Set TXPIN high (serial idle)
+    SERIAL_TXDDR |= 1<<SERIAL_TXPIN;       // Set SERIAL_TXPIN as an output
+    SERIAL_TXPORT |= 1<<SERIAL_TXPIN;     // Set SERIAL_TXPIN high (serial idle)
     TCCR0A = 1<<WGM01;      // Select CTC mode
-    TCCR0B = SCALE_FLAG;    // Set clock scaler
+    TCCR0B = PRESCALER_FLAG;    // Set clock scaler
     OCR0A = TICKS_PER_BIT;  // Set CTC target value
     sei();
 }
@@ -110,19 +111,19 @@ ISR(TIM0_COMPA_vect) {
         switch(port.index) {
             case 0:
                 // send start bit
-                TXPORT &= ~(1<<TXPIN);
+                SERIAL_TXPORT &= ~(1<<SERIAL_TXPIN);
                 break;
             case 9:
                 // send stop bit
-                TXPORT |= (1<<TXPIN);
+                SERIAL_TXPORT |= (1<<SERIAL_TXPIN);
                 port.busy = 0;
                 break;
             default:
                 // send data bit
                 if (port.data & 1) {
-                    TXPORT |= 1<<TXPIN;
+                    SERIAL_TXPORT |= 1<<SERIAL_TXPIN;
                 } else {
-                    TXPORT &= ~(1<<TXPIN);
+                    SERIAL_TXPORT &= ~(1<<SERIAL_TXPIN);
                 }
                 port.data >>= 1;
                 break;

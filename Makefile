@@ -4,7 +4,7 @@ AVR_BAUD    ?= 19200
 AVR_PORT    ?= /dev/ttyACM0
 FUSE_EXT    ?= 0xff
 FUSE_HIGH   ?= 0xdf
-FUSE_LOW    ?= 0x62
+FUSE_LOW    ?= 0x62 # use 0xe2 for 8Mhz
 PROGRAMMER  ?= -c arduino 
 
 DEVICE      = attiny84
