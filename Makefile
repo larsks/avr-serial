@@ -30,6 +30,8 @@ OBJS += \
 	main.o \
 	serial.o
 
+ASMS = $(OBJS:.o=.s)
+
 DEPS = $(OBJS:.o=.dep)
 
 all:	$(PROGNAME).hex
@@ -62,7 +64,7 @@ fuse:
 make: flash fuse
 
 clean:
-	rm -f $(PROGNAME).hex $(PROGNAME).elf $(OBJS) $(DEPS)
+	rm -f $(PROGNAME).hex $(PROGNAME).elf $(OBJS) $(DEPS) $(ASMS)
 
 $(PROGNAME).elf: $(OBJS)
 	$(CC) $(CFLAGS) -o $(PROGNAME).elf $(OBJS)
