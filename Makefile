@@ -20,7 +20,7 @@ CFLAGS += -ggdb3 -DDEBUG
 OFLAG = -Og
 endif
 
-SERIAL_BPS = 9600
+SERIAL_BPS = 4800
 
 CC	= avr-gcc
 CPPFLAGS += -I/usr/local/include $(DEFINES)
