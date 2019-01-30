@@ -26,7 +26,12 @@
 //! @{
 #if ((F_CPU/SERIAL_BPS) < 256)
 #pragma message "prescaler: no prescaler"
+
+//! `PRESCALER_FLAG` is used to configure the `TCCR0B` register
 #define PRESCALER_FLAG 0b001
+
+//! `PRESCALER_VAL` is the divisor selected by `PRESCALER_FLAG`. We
+//! this to calculate `TICKS_PER_BIT`.
 #define PRESCALER_VAL 1
 #else
 #if ((F_CPU/SERIAL_BPS/8) < 256)
@@ -92,8 +97,18 @@ const struct avr_mmcu_vcd_trace_t _mytrace[]  _MMCU_ = {
 #endif
 
 #ifdef SERIAL_PROVIDE_MILLIS
+
+//! These values are used when updating the millis counter.
+//! \defgroup  MILLIS MILLIS
+//! @{
+
+//! Number of milliseconds required to send each bit
 #define mS_PER_BIT (1000/SERIAL_BPS)
+
+//! Number of additional microseconds required to send each bit
 #define uS_PER_BIT ((1000000/SERIAL_BPS) - (mS_PER_BIT * 1000))
+
+//! @}
 
 uint16_t _micros;
 millis_t _millis;
@@ -154,6 +169,10 @@ millis_t millis() {
 }
 #endif // SERIAL_PROVIDE_MILLIS
 
+//! Timer0 output compare match interrupt routine. This is responsible
+//! for sending bits out `SERIAL_TXPIN`. If you have enabled
+//! `SERIAL_PROVIDE_MILLIS`, it is also responsible for incrementing
+//! the millis counter.
 ISR(TIM0_COMPA_vect) {
 #ifdef DEBUG
     DEBUGPORT |= 1<<DEBUGPIN;
