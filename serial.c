@@ -67,6 +67,10 @@
 //! load this value into the `OCR0A` register.
 #define TICKS_PER_BIT (F_CPU/SERIAL_BPS/PRESCALER_VAL)
 
+#ifdef __AVR_ATtiny84__
+#define TIMSK TIMSK0
+#endif
+
 //! Data structure representing the output port.
 volatile struct SERIAL_PORT {
     uint8_t data;   //!< Byte we are currently sending
@@ -91,12 +95,12 @@ void serial_init() {
 }
 
 void serial_enable() {
-    TIMSK0 |= 1<<OCIE0A;    // Enable compare match interrupt
+    TIMSK |= 1<<OCIE0A;    // Enable compare match interrupt
 }
 
 void serial_disable() {
     while (port.busy);      // Wait for send to complete
-    TIMSK0 &= ~(1<<OCIE0A); // Disable compare match interrupt
+    TIMSK &= ~(1<<OCIE0A); // Disable compare match interrupt
 }
 
 void serial_putchar(char c) {
