@@ -80,12 +80,30 @@ volatile struct SERIAL_PORT {
 
 #ifdef DEBUG
 #include <simavr/avr/avr_mcu_section.h>
+
+#define DEBUGPORT PORTB
+#define DEBUGDDR DDRB
+#define DEBUGPIN PORTB1
+
 const struct avr_mmcu_vcd_trace_t _mytrace[]  _MMCU_ = {
     { AVR_MCU_VCD_SYMBOL("TX"), .mask = (1<<SERIAL_TXPIN), .what = (void*)&SERIAL_TXPORT,  },
+    { AVR_MCU_VCD_SYMBOL("ISR"), .mask = (1<<DEBUGPIN), .what = (void*)&DEBUGPORT,  },
 };
 #endif
 
+#ifdef SERIAL_PROVIDE_MILLIS
+#define mS_PER_BIT (1000/SERIAL_BPS)
+#define uS_PER_BIT ((1000000/SERIAL_BPS) - (mS_PER_BIT * 1000))
+
+uint16_t _micros;
+millis_t _millis;
+#endif // SERIAL_PROVIDE_MILLIS
+
 void serial_init() {
+#ifdef DEBUG
+    DEBUGDDR |= 1<<DEBUGPIN;
+#endif
+
     SERIAL_TXDDR |= 1<<SERIAL_TXPIN;   // Set SERIAL_TXPIN as an output
     SERIAL_TXPORT |= 1<<SERIAL_TXPIN;  // Set SERIAL_TXPIN high (serial idle)
     TCCR0A = 1<<WGM01;                 // Select CTC mode
@@ -121,7 +139,25 @@ void serial_println(char *s) {
     serial_putchar('\n');
 }
 
+#ifdef SERIAL_PROVIDE_MILLIS
+void delay(millis_t ms) {
+    millis_t t_start = millis();
+    while(millis() - t_start < ms);
+}
+
+millis_t millis() {
+    millis_t m;
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        m = _millis;
+    }
+    return m;
+}
+#endif // SERIAL_PROVIDE_MILLIS
+
 ISR(TIM0_COMPA_vect) {
+#ifdef DEBUG
+    DEBUGPORT |= 1<<DEBUGPIN;
+#endif
     if (port.busy) {
         switch(port.index) {
             case 0:
@@ -145,4 +181,16 @@ ISR(TIM0_COMPA_vect) {
         }
         port.index++;
     }
+
+#ifdef SERIAL_PROVIDE_MILLIS
+    if ((_micros += uS_PER_BIT) >= 1000) {
+        _millis++;
+        _micros = 0;
+    }
+    _millis += mS_PER_BIT;
+#endif // SERIAL_PROVIDE_MILLIS
+
+#ifdef DEBUG
+    DEBUGPORT &= ~(1<<DEBUGPIN);
+#endif
 }
