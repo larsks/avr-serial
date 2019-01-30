@@ -24,7 +24,7 @@ SERIAL_BPS = 4800
 
 CC	= avr-gcc
 CPPFLAGS += -I/usr/local/include $(DEFINES)
-CFLAGS	+= -Wall $(OFLAG) -DSERIAL_BPS=$(SERIAL_BPS) -DF_CPU=$(CLOCK) -mmcu=$(DEVICE) --short-enums $(EXTRA_CFLAGS)
+CFLAGS	+= -std=c99 -Wall $(OFLAG) -DSERIAL_BPS=$(SERIAL_BPS) -DF_CPU=$(CLOCK) -mmcu=$(DEVICE) --short-enums $(EXTRA_CFLAGS)
 
 OBJS += \
 	main.o \
