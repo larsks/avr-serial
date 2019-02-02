@@ -17,3 +17,5 @@ publish: all
 
 clean:
 	rm -rf html
+
+.PHONY: all docs publish clean
