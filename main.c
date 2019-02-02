@@ -8,7 +8,7 @@ int main() {
 #endif
 
     serial_init();
-    serial_enable();
+    serial_begin();
     while (1) {
         serial_println("hello world");
 #ifdef SERIAL_PROVIDE_MILLIS
@@ -19,6 +19,6 @@ int main() {
         _delay_ms(500);
 #endif
     }
-    serial_disable();
+    serial_end();
 }
 

@@ -127,11 +127,11 @@ void serial_init() {
     sei();
 }
 
-void serial_enable() {
+void serial_begin() {
     TIMSK |= 1<<OCIE0A;    // Enable compare match interrupt
 }
 
-void serial_disable() {
+void serial_end() {
     while (port.busy);      // Wait for send to complete
     TIMSK &= ~(1<<OCIE0A); // Disable compare match interrupt
 }

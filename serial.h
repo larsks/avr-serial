@@ -46,10 +46,10 @@ typedef uint32_t millis_t;
 void serial_init();
 
 /** Enable timer compare interrupts */
-void serial_enable();
+void serial_begin();
 
 /** Disable timer compare interrupts */
-void serial_disable();
+void serial_end();
 
 /** Write a single character out the serial port */
 void serial_putchar(char c);
@@ -62,8 +62,8 @@ void serial_println(char *s);
 
 #ifdef SERIAL_PROVIDE_MILLIS
 /** Return current millis counter.  The millis counter starts
- * incrementing when you call `serial_enable`, and stops counting when
- * you call `serial_disable`.
+ * incrementing when you call `serial_begin`, and stops counting when
+ * you call `serial_end`.
  */
 millis_t millis();
 
