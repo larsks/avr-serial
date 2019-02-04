@@ -19,7 +19,7 @@
  * you want to use a pin that is not on `PORTB`, you will also need to
  * set `SERIAL_TXDDR` and `SERIAL_TXPORT`.  E.g:
  *
- *     #define SERIAL_TXPIN PORTA0
+ *     #define SERIAL_TXPIN (1<<PORTA0)
  *     #define SERIAL_TXDDR DDRA
  *     #define SERIAL_TXPORT PORTA
  *

@@ -54,7 +54,7 @@
 
 #ifndef SERIAL_TXPIN
 //! Use this pin for serial output.
-#define SERIAL_TXPIN PORTB0
+#define SERIAL_TXPIN (1<<PORTB0)
 #endif
 
 #ifndef SERIAL_TXPORT
@@ -88,11 +88,11 @@ volatile struct SERIAL_PORT {
 
 #define DEBUGPORT PORTB
 #define DEBUGDDR DDRB
-#define DEBUGPIN PORTB1
+#define DEBUGPIN (1<<PORTB1)
 
 const struct avr_mmcu_vcd_trace_t _mytrace[]  _MMCU_ = {
-    { AVR_MCU_VCD_SYMBOL("TX"),  .mask = (1<<SERIAL_TXPIN), .what = (void*)&SERIAL_TXPORT, },
-    { AVR_MCU_VCD_SYMBOL("ISR"), .mask = (1<<DEBUGPIN),     .what = (void*)&DEBUGPORT,     },
+    { AVR_MCU_VCD_SYMBOL("TX"),  .mask = SERIAL_TXPIN, .what = (void*)&SERIAL_TXPORT, },
+    { AVR_MCU_VCD_SYMBOL("ISR"), .mask = DEBUGPIN,     .what = (void*)&DEBUGPORT,     },
 };
 #endif
 
@@ -119,8 +119,8 @@ void serial_init() {
     DEBUGDDR      |= 1<<DEBUGPIN;
 #endif
 
-    SERIAL_TXDDR  |= 1<<SERIAL_TXPIN;   // Set SERIAL_TXPIN as an output
-    SERIAL_TXPORT |= 1<<SERIAL_TXPIN;   // Set SERIAL_TXPIN high (serial idle)
+    SERIAL_TXDDR  |= SERIAL_TXPIN;      // Set SERIAL_TXPIN as an output
+    SERIAL_TXPORT |= SERIAL_TXPIN;      // Set SERIAL_TXPIN high (serial idle)
     TCCR0A         = 1<<WGM01;          // Select CTC mode
     TCCR0B         = PRESCALER_FLAG;    // Set clock prescaler
     OCR0A          = TICKS_PER_BIT;     // Set CTC target value
@@ -133,7 +133,7 @@ void serial_begin() {
 
 void serial_end() {
     while (port.busy);      // Wait for send to complete
-    TIMSK &= ~(1<<OCIE0A); // Disable compare match interrupt
+    TIMSK &= ~(1<<OCIE0A);  // Disable compare match interrupt
 }
 
 void serial_putchar(char c) {
@@ -181,19 +181,19 @@ ISR(TIM0_COMPA_vect) {
         switch(port.index) {
             case 0:
                 // send start bit
-                SERIAL_TXPORT &= ~(1<<SERIAL_TXPIN);
+                SERIAL_TXPORT &= ~(SERIAL_TXPIN);
                 break;
             case 9:
                 // send stop bit
-                SERIAL_TXPORT |= (1<<SERIAL_TXPIN);
+                SERIAL_TXPORT |= SERIAL_TXPIN;
                 port.busy = 0;
                 break;
             default:
                 // send data bit
                 if (port.data & 1) {
-                    SERIAL_TXPORT |= 1<<SERIAL_TXPIN;
+                    SERIAL_TXPORT |= SERIAL_TXPIN;
                 } else {
-                    SERIAL_TXPORT &= ~(1<<SERIAL_TXPIN);
+                    SERIAL_TXPORT &= ~(SERIAL_TXPIN);
                 }
                 port.data >>= 1;
                 break;
